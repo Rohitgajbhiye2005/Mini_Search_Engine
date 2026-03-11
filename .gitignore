@@ -1,0 +1,14 @@
+# Go build files
+/bin/
+/obj/
+/vendor/
+
+# OS generated files
+.DS_Store
+*.log
+
+# Environment files (keep secrets safe!)
+.env
+
+# Database dumps
+*.sql

@@ -2,12 +2,12 @@ package crawler
 
 import (
 	"fmt"
-	"net/url"
-	"strings"
+	"mini_search_engine/model"
+	"mini_search_engine/repository"
 	"sync"
 )
 
-func Crawl(seedUrls []string, maxPages int) {
+func Crawl(seedUrls []string, maxPages int,repo repository.PageRepository) {
 	urlQueue := make(chan string, 1000)
 	// queue := seedUrls
 	var mu sync.Mutex
@@ -19,7 +19,7 @@ func Crawl(seedUrls []string, maxPages int) {
 	var wg sync.WaitGroup
 
 	for _, url := range seedUrls {
-		normlized:=normalizeURL(url)
+		normlized:=NormalizeURL(url)
 		if normlized==""{
 			continue
 		}
@@ -38,6 +38,7 @@ func Crawl(seedUrls []string, maxPages int) {
 			maxPages,
 			&count,
 			&wg,
+			repo,
 		)
 	}
 	// i have to implemenet the waitgroup here
@@ -126,6 +127,7 @@ func worker(
 	maxPages int,
 	count *int,
 	wg *sync.WaitGroup,
+	repo repository.PageRepository,
 ) {
 	//linkLimitPerPage := 500
 	defer wg.Done()
@@ -154,7 +156,16 @@ func worker(
 		if err != nil {
 			continue
 		}
-
+		title := ExtractTitle(html)
+		text := ExtractText(html)
+		page:=&model.Page{
+			URL: url,
+			Title: title,
+			Content: text,
+		}
+		if err:=repo.InsertPage(page);err!=nil{
+			fmt.Printf("Failed to insert page %s: %v\n",url,err)
+		}
 		links := ExtractLinks(url, html)
 
 		//fmt.Println("Queue size:", len(urlQueue))
@@ -164,15 +175,15 @@ func worker(
 			if !SameDomain(seed, link) {
 				continue
 			}
-			link = normalizeURL(link)
+			link = NormalizeURL(link)
 			if link == "" {
 				continue
 			}
 
-			if !isHTMLPage(link) {
+			if !IsHTMLPage(link) {
 				continue
 			}
-			
+
 			mu.Lock()
 			if visited[link] {
 				mu.Unlock()
@@ -269,48 +280,3 @@ func worker(
 // 		fmt.Println("Queue size:", len(urlQueue))
 // 	}
 // }
-func normalizeURL(raw string) string {
-
-	u, err := url.Parse(raw)
-	if err != nil {
-		return ""
-	}
-
-	u.Fragment = ""
-
-	clean := u.String()
-
-	clean = strings.TrimRight(clean, "/")
-
-	return clean
-}
-
-func isHTMLPage(link string) bool {
-
-	skipExtensions := []string{
-		".zip",
-		".tar",
-		".tar.gz",
-		".gz",
-		".pdf",
-		".jpg",
-		".jpeg",
-		".png",
-		".gif",
-		".svg",
-		".mp4",
-		".mp3",
-		".exe",
-		".msi",
-		".pkg",
-		".dmg",
-	}
-
-	for _, ext := range skipExtensions {
-		if strings.HasSuffix(link, ext) {
-			return false
-		}
-	}
-
-	return true
-}

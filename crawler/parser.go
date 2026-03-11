@@ -88,3 +88,67 @@ func SameDomain(base string, target string) bool {
 
 	return baseURL.Host == targetURL.Host
 }
+
+func NormalizeURL(raw string) string {
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+
+	u.Fragment = ""
+
+	clean := u.String()
+
+	clean = strings.TrimRight(clean, "/")
+
+	return clean
+}
+
+func IsHTMLPage(link string) bool {
+
+	skipExtensions := []string{
+		".zip",
+		".tar",
+		".tar.gz",
+		".gz",
+		".pdf",
+		".jpg",
+		".jpeg",
+		".png",
+		".gif",
+		".svg",
+		".mp4",
+		".mp3",
+		".exe",
+		".msi",
+		".pkg",
+		".dmg",
+	}
+
+	for _, ext := range skipExtensions {
+		if strings.HasSuffix(link, ext) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func ExtractTitle(html string)string{
+	doc,err:=goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err!=nil{
+		return ""
+	}
+	return strings.TrimSpace(doc.Find("title").Text())
+}
+
+func ExtractText(html string) string {
+    doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+    if err != nil {
+        return ""
+    }
+    doc.Find("script,style").Remove() // remove unwanted tags
+    text := doc.Text()
+    return strings.TrimSpace(text)
+}
