@@ -4,12 +4,13 @@ import (
 	"mini_search_engine/service"
 	"net/http"
 	"strconv"
-
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func StartServer(svc service.PageService){
 	r:=gin.Default()
+	r.Use(cors.Default())
 
 	r.GET("/search",func(ctx *gin.Context) {
 		query:=ctx.Query("q")
